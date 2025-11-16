@@ -20,7 +20,7 @@ func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
 		}
 		grid.SetElement(rowNum, 0, gridEntry{
 			costToReachSquare: scoreMatrix.insertionAmount * rowNum,
-			backpointers:      [][2]int{{rowNum - 1, 0}}})
+			backpointers:      []moveType{North}})
 	}
 
 	for colNum := range grid.numColumns {
@@ -29,7 +29,7 @@ func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
 		}
 		grid.SetElement(0, colNum, gridEntry{
 			costToReachSquare: scoreMatrix.deletionAmount * colNum,
-			backpointers:      [][2]int{{0, colNum - 1}}})
+			backpointers:      []moveType{West}})
 	}
 }
 
@@ -37,12 +37,12 @@ func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
 In this implementation, u is considered the reference against a query v.
 */
 func computeAlignmentGrid(u, v string, scoreMatrix scoreMatrix) *alignmentGrid {
-	grid := NewGrid(len(u), len(v))
+	grid := NewGrid(len(u)+1, len(v)+1)
 	initialiseGrid(grid, scoreMatrix)
 
 	for rowNumber := 1; rowNumber < grid.numRows; rowNumber++ {
 		for columnNumber := 1; columnNumber < grid.numColumns; columnNumber++ {
-			isAMatch := u[rowNumber] == v[columnNumber]
+			isAMatch := u[rowNumber-1] == v[columnNumber-1]
 			minimumCostAndPath := grid.findOptimalMove(rowNumber, columnNumber, isAMatch, scoreMatrix)
 			grid.SetElement(rowNumber, columnNumber, minimumCostAndPath)
 		}
@@ -54,7 +54,7 @@ func computeAlignmentGrid(u, v string, scoreMatrix scoreMatrix) *alignmentGrid {
 func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch bool, scoreMatrix scoreMatrix) gridEntry {
 	type previousSquare struct {
 		costToReachSquare int
-		index             [2]int
+		index             moveType
 	}
 	moves := [3]previousSquare{}
 
@@ -62,11 +62,11 @@ func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch
 	north := grid.GetElement(rowNumber-1, columnNumber)
 	moves[0] = previousSquare{
 		costToReachSquare: west.costToReachSquare + scoreMatrix.insertionAmount,
-		index:             [2]int{rowNumber, columnNumber - 1},
+		index:             West,
 	}
 	moves[1] = previousSquare{
 		costToReachSquare: north.costToReachSquare + scoreMatrix.deletionAmount,
-		index:             [2]int{rowNumber - 1, columnNumber},
+		index:             North,
 	}
 
 	northWest := grid.GetElement(rowNumber-1, columnNumber-1)
@@ -76,11 +76,11 @@ func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch
 	}
 	moves[2] = previousSquare{
 		costToReachSquare: northWest.costToReachSquare + northWestMoveCost,
-		index:             [2]int{rowNumber - 1, columnNumber - 1},
+		index:             NorthWest,
 	}
 
 	bestCost := max(moves[0].costToReachSquare, max(moves[1].costToReachSquare, moves[2].costToReachSquare))
-	var backpointers [][2]int
+	var backpointers []moveType
 	for _, move := range moves {
 		if move.costToReachSquare == bestCost {
 			backpointers = append(backpointers, move.index)
@@ -90,7 +90,56 @@ func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch
 	return gridEntry{costToReachSquare: bestCost, backpointers: backpointers}
 }
 
+func (grid *alignmentGrid) traceAlignmentSequences(u, v string) {
+	alignmentSequences := make([][2]string, 1)
+	var refOffset, queryOffset int = 1, 1
+	backpointers := grid.GetElement(grid.numRows-refOffset, grid.numColumns-queryOffset).backpointers
+	var referenceString, queryString []byte
+	for backpointers != nil {
+		// TODO: Split logic here for the rest of the strings.
+		prevSquare := backpointers[0]
+		switch prevSquare {
+		case North:
+			referenceString = append(referenceString, u[len(u)-refOffset])
+			refOffset++
+			queryString = append(queryString, '-')
+		case West:
+			referenceString = append(referenceString, '-')
+			queryString = append(queryString, v[len(v)-queryOffset])
+			queryOffset++
+		case NorthWest:
+			referenceString = append(referenceString, u[len(u)-refOffset])
+			refOffset++
+			queryString = append(queryString, v[len(v)-queryOffset])
+			queryOffset++
+		}
+
+		backpointers = grid.GetElement(grid.numRows-refOffset, grid.numColumns-queryOffset).backpointers
+	}
+
+	alignmentSequences[0] = [2]string{reverseByteArrToString(referenceString), reverseByteArrToString(queryString)}
+
+	for seqNum, sequence := range alignmentSequences {
+		if seqNum != 0 {
+			fmt.Println()
+		}
+		fmt.Printf("%s\n%s\n", sequence[0], sequence[1])
+	}
+}
+
+func reverseByteArrToString(buf []byte) string {
+	for i, j := 0, len(buf)-1; i < j; i, j = i+1, j-1 {
+		buf[i], buf[j] = buf[j], buf[i]
+	}
+
+	return string(buf)
+}
+
 func AlignmentExample() {
-	grid := computeAlignmentGrid("CGTGAA", "GACTTAC", scoreMatrix{insertionAmount: -4, deletionAmount: -4, matchAmount: 5, mismatchAmount: -3})
-	fmt.Println(grid)
+	u := "CGTGAA"
+	v := "GACTTAC"
+	grid := computeAlignmentGrid(u, v, scoreMatrix{insertionAmount: -4, deletionAmount: -4, matchAmount: 5, mismatchAmount: -3})
+	fmt.Printf("The maximal cost alignment between the two sequences is %d.\n", grid.GetElement(len(u), len(v)).costToReachSquare)
+	fmt.Println("With alignment sequences:")
+	grid.traceAlignmentSequences(u, v)
 }

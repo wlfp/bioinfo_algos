@@ -7,8 +7,16 @@ import (
 
 type gridEntry struct {
 	costToReachSquare int
-	backpointers      [][2]int // Use grid indices rather than real pointers.
+	backpointers      []moveType // Use relative moves rather than real pointers.
 }
+
+type moveType int
+
+const (
+	North moveType = iota
+	West
+	NorthWest
+)
 
 type alignmentGrid struct {
 	entries    []gridEntry
