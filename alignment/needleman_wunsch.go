@@ -1,60 +1,49 @@
-package main
+package alignment
 
 import (
 	"fmt"
-	"strings"
 )
 
-type gridEntry struct {
-	costToReachSqure int
-	backpointers     []int // Use grid indices rather than real pointers.
-}
-
-type alignmentGrid [][]gridEntry
-
 type scoreMatrix struct {
-	indelAmount    int
-	matchAmount    int
-	mismatchAmount int
+	insertionAmount int
+	deletionAmount  int
+	matchAmount     int
+	mismatchAmount  int
 }
 
-func computeAlignmentGrid(u, v string, scoreMatrix scoreMatrix) alignmentGrid {
-	grid := make(alignmentGrid, len(u))
-	for rowIndex := range grid {
-		grid[rowIndex] = make([]gridEntry, len(v))
+func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
+	grid.SetElement(0, 0, gridEntry{costToReachSqure: 0, backpointers: nil})
+
+	for rowNum := range grid.numRows {
+		if rowNum == 0 {
+			continue // Already set first.
+		}
+		grid.SetElement(rowNum, 0, gridEntry{
+			costToReachSqure: scoreMatrix.insertionAmount * rowNum,
+			backpointers:     [][2]int{{rowNum - 1, 0}}})
 	}
 
-	grid[0][0] = gridEntry{costToReachSqure: 0, backpointers: nil}
-	for emptyFirstRowSquare := range grid[0][1:] {
-		firstRowElementIndex := emptyFirstRowSquare + 1 // Already populated (0,0).
-		grid[0][firstRowElementIndex] = gridEntry{
-			costToReachSqure: scoreMatrix.indelAmount * firstRowElementIndex,
-			backpointers:     []int{firstRowElementIndex - 1},
+	for colNum := range grid.numColumns {
+		if colNum == 0 {
+			continue
 		}
+		grid.SetElement(0, colNum, gridEntry{
+			costToReachSqure: scoreMatrix.deletionAmount * colNum,
+			backpointers:     [][2]int{{0, colNum - 1}}})
 	}
-	for emptyFirstColumn := range grid[1:] {
-		columnIndex := emptyFirstColumn + 1
-		grid[columnIndex][0] = gridEntry{
-			costToReachSqure: scoreMatrix.indelAmount * columnIndex,
-			backpointers:     []int{columnIndex - 1},
-		}
-	}
+}
+
+/*
+In this implementation, u is considered the reference against a query v.
+*/
+func computeAlignmentGrid(u, v string, scoreMatrix scoreMatrix) *alignmentGrid {
+	grid := NewGrid(len(u), len(v))
+	initialiseGrid(grid, scoreMatrix)
 
 	return grid
 }
 
-func main() {
-	grid := computeAlignmentGrid("CGTGAA", "GACTTAC", scoreMatrix{indelAmount: -4, matchAmount: 5, mismatchAmount: -3})
+func AlignmentExample() {
+	grid := computeAlignmentGrid("CGTGAA", "GACTTAC", scoreMatrix{insertionAmount: -4, deletionAmount: -4, matchAmount: 5, mismatchAmount: -3})
 	fmt.Println(grid)
-}
-
-func (grid alignmentGrid) String() string {
-	builder := strings.Builder{}
-	for rowIndex, row := range grid {
-		if rowIndex != 0 {
-			builder.WriteRune('\n')
-		}
-		builder.WriteString(fmt.Sprint(row))
-	}
-	return builder.String()
 }
