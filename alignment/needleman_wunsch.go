@@ -12,15 +12,15 @@ type scoreMatrix struct {
 }
 
 func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
-	grid.SetElement(0, 0, gridEntry{costToReachSqure: 0, backpointers: nil})
+	grid.SetElement(0, 0, gridEntry{costToReachSquare: 0, backpointers: nil})
 
 	for rowNum := range grid.numRows {
 		if rowNum == 0 {
 			continue // Already set first.
 		}
 		grid.SetElement(rowNum, 0, gridEntry{
-			costToReachSqure: scoreMatrix.insertionAmount * rowNum,
-			backpointers:     [][2]int{{rowNum - 1, 0}}})
+			costToReachSquare: scoreMatrix.insertionAmount * rowNum,
+			backpointers:      [][2]int{{rowNum - 1, 0}}})
 	}
 
 	for colNum := range grid.numColumns {
@@ -28,8 +28,8 @@ func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
 			continue
 		}
 		grid.SetElement(0, colNum, gridEntry{
-			costToReachSqure: scoreMatrix.deletionAmount * colNum,
-			backpointers:     [][2]int{{0, colNum - 1}}})
+			costToReachSquare: scoreMatrix.deletionAmount * colNum,
+			backpointers:      [][2]int{{0, colNum - 1}}})
 	}
 }
 
@@ -52,18 +52,42 @@ func computeAlignmentGrid(u, v string, scoreMatrix scoreMatrix) *alignmentGrid {
 }
 
 func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch bool, scoreMatrix scoreMatrix) gridEntry {
+	type previousSquare struct {
+		costToReachSquare int
+		index             [2]int
+	}
+	moves := [3]previousSquare{}
+
 	west := grid.GetElement(rowNumber, columnNumber-1)
 	north := grid.GetElement(rowNumber-1, columnNumber)
-	cost := max(west.costToReachSqure+scoreMatrix.insertionAmount, north.costToReachSqure+scoreMatrix.deletionAmount)
+	moves[0] = previousSquare{
+		costToReachSquare: west.costToReachSquare + scoreMatrix.insertionAmount,
+		index:             [2]int{rowNumber, columnNumber - 1},
+	}
+	moves[1] = previousSquare{
+		costToReachSquare: north.costToReachSquare + scoreMatrix.deletionAmount,
+		index:             [2]int{rowNumber - 1, columnNumber},
+	}
 
 	northWest := grid.GetElement(rowNumber-1, columnNumber-1)
 	northWestMoveCost := scoreMatrix.mismatchAmount
 	if isAMatch {
 		northWestMoveCost = scoreMatrix.matchAmount
 	}
-	cost = max(cost, northWest.costToReachSqure+northWestMoveCost)
-	// TODO: Backpointers building along the way.
-	return gridEntry{costToReachSqure: cost, backpointers: nil}
+	moves[2] = previousSquare{
+		costToReachSquare: northWest.costToReachSquare + northWestMoveCost,
+		index:             [2]int{rowNumber - 1, columnNumber - 1},
+	}
+
+	bestCost := max(moves[0].costToReachSquare, max(moves[1].costToReachSquare, moves[2].costToReachSquare))
+	var backpointers [][2]int
+	for _, move := range moves {
+		if move.costToReachSquare == bestCost {
+			backpointers = append(backpointers, move.index)
+		}
+	}
+
+	return gridEntry{costToReachSquare: bestCost, backpointers: backpointers}
 }
 
 func AlignmentExample() {

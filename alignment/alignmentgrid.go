@@ -6,8 +6,8 @@ import (
 )
 
 type gridEntry struct {
-	costToReachSqure int
-	backpointers     [][2]int // Use grid indices rather than real pointers.
+	costToReachSquare int
+	backpointers      [][2]int // Use grid indices rather than real pointers.
 }
 
 type alignmentGrid struct {
