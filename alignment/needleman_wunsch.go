@@ -40,7 +40,30 @@ func computeAlignmentGrid(u, v string, scoreMatrix scoreMatrix) *alignmentGrid {
 	grid := NewGrid(len(u), len(v))
 	initialiseGrid(grid, scoreMatrix)
 
+	for rowNumber := 1; rowNumber < grid.numRows; rowNumber++ {
+		for columnNumber := 1; columnNumber < grid.numColumns; columnNumber++ {
+			isAMatch := u[rowNumber] == v[columnNumber]
+			minimumCostAndPath := grid.findOptimalMove(rowNumber, columnNumber, isAMatch, scoreMatrix)
+			grid.SetElement(rowNumber, columnNumber, minimumCostAndPath)
+		}
+	}
+
 	return grid
+}
+
+func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch bool, scoreMatrix scoreMatrix) gridEntry {
+	west := grid.GetElement(rowNumber, columnNumber-1)
+	north := grid.GetElement(rowNumber-1, columnNumber)
+	cost := max(west.costToReachSqure+scoreMatrix.insertionAmount, north.costToReachSqure+scoreMatrix.deletionAmount)
+
+	northWest := grid.GetElement(rowNumber-1, columnNumber-1)
+	northWestMoveCost := scoreMatrix.mismatchAmount
+	if isAMatch {
+		northWestMoveCost = scoreMatrix.matchAmount
+	}
+	cost = max(cost, northWest.costToReachSqure+northWestMoveCost)
+	// TODO: Backpointers building along the way.
+	return gridEntry{costToReachSqure: cost, backpointers: nil}
 }
 
 func AlignmentExample() {
