@@ -91,33 +91,60 @@ func (grid *alignmentGrid) findOptimalMove(rowNumber, columnNumber int, isAMatch
 }
 
 func (grid *alignmentGrid) traceAlignmentSequences(u, v string) {
-	alignmentSequences := make([][2]string, 1)
-	var refOffset, queryOffset int = 1, 1
-	backpointers := grid.GetElement(grid.numRows-refOffset, grid.numColumns-queryOffset).backpointers
-	var referenceString, queryString []byte
-	for backpointers != nil {
-		// TODO: Split logic here for the rest of the strings.
-		prevSquare := backpointers[0]
-		switch prevSquare {
-		case North:
-			referenceString = append(referenceString, u[len(u)-refOffset])
-			refOffset++
-			queryString = append(queryString, '-')
-		case West:
-			referenceString = append(referenceString, '-')
-			queryString = append(queryString, v[len(v)-queryOffset])
-			queryOffset++
-		case NorthWest:
-			referenceString = append(referenceString, u[len(u)-refOffset])
-			refOffset++
-			queryString = append(queryString, v[len(v)-queryOffset])
-			queryOffset++
-		}
-
-		backpointers = grid.GetElement(grid.numRows-refOffset, grid.numColumns-queryOffset).backpointers
+	type alignmentState struct {
+		refOffset    int
+		queryOffset  int
+		referenceStr []byte
+		queryStr     []byte
 	}
 
-	alignmentSequences[0] = [2]string{reverseByteArrToString(referenceString), reverseByteArrToString(queryString)}
+	var alignmentSequences [][2]string
+	stack := []alignmentState{{refOffset: 1, queryOffset: 1}}
+
+	// DFS-style walk.
+	for len(stack) > 0 {
+		state := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		row := grid.numRows - state.refOffset
+		column := grid.numColumns - state.queryOffset
+
+		if row == 0 && column == 0 {
+			alignmentSequences = append(alignmentSequences, [2]string{
+				reverseByteArrToString(append([]byte(nil), state.referenceStr...)),
+				reverseByteArrToString(append([]byte(nil), state.queryStr...)),
+			})
+			continue
+		}
+
+		backpointers := grid.GetElement(row, column).backpointers
+		for _, prevSquare := range backpointers {
+			nextState := alignmentState{
+				refOffset:    state.refOffset,
+				queryOffset:  state.queryOffset,
+				referenceStr: append([]byte{}, state.referenceStr...),
+				queryStr:     append([]byte{}, state.queryStr...),
+			}
+
+			switch prevSquare {
+			case North:
+				nextState.referenceStr = append(nextState.referenceStr, u[len(u)-nextState.refOffset])
+				nextState.refOffset++
+				nextState.queryStr = append(nextState.queryStr, '-')
+			case West:
+				nextState.referenceStr = append(nextState.referenceStr, '-')
+				nextState.queryStr = append(nextState.queryStr, v[len(v)-nextState.queryOffset])
+				nextState.queryOffset++
+			case NorthWest:
+				nextState.referenceStr = append(nextState.referenceStr, u[len(u)-nextState.refOffset])
+				nextState.refOffset++
+				nextState.queryStr = append(nextState.queryStr, v[len(v)-nextState.queryOffset])
+				nextState.queryOffset++
+			}
+
+			stack = append(stack, nextState)
+		}
+	}
 
 	for seqNum, sequence := range alignmentSequences {
 		if seqNum != 0 {
