@@ -1,7 +1,9 @@
 package alignment
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 )
 
 type scoreMatrix struct {
@@ -9,6 +11,44 @@ type scoreMatrix struct {
 	deletionAmount  int
 	matchAmount     int
 	mismatchAmount  int
+}
+
+func calculateAlignment(u, v string, scoreMatrix scoreMatrix) {
+	grid := computeAlignmentGrid(u, v, scoreMatrix)
+	fmt.Printf("The maximal cost alignment between the two sequences is %d.\n", grid.GetElement(len(u), len(v)).costToReachSquare)
+	fmt.Println("With alignment sequences:")
+	grid.traceAlignmentSequences(u, v)
+}
+
+func AlignmentExample() {
+	u := "CGTGAA"
+	v := "GACTTAC"
+	scoreMatrix := scoreMatrix{insertionAmount: -4, deletionAmount: -4, matchAmount: 5, mismatchAmount: -3}
+	calculateAlignment(u, v, scoreMatrix)
+}
+
+func Alignment() {
+	var u, v string
+	var scoreMatrix scoreMatrix
+
+	fmt.Printf("Please enter a filename with both sequences, one per line: ")
+	var filename string
+	fmt.Scanln(&filename)
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Scan()
+	u = scanner.Text()
+	scanner.Scan()
+	v = scanner.Text()
+
+	fmt.Println("Please enter, as integers separated by a space, the score function values for an insertion, deletion, match, and mismatch:")
+	fmt.Scanf("%d %d %d %d\n", &scoreMatrix.insertionAmount, &scoreMatrix.deletionAmount, &scoreMatrix.matchAmount, &scoreMatrix.mismatchAmount)
+	calculateAlignment(u, v, scoreMatrix)
 }
 
 func initialiseGrid(grid *alignmentGrid, scoreMatrix scoreMatrix) {
@@ -111,8 +151,8 @@ func (grid *alignmentGrid) traceAlignmentSequences(u, v string) {
 
 		if row == 0 && column == 0 {
 			alignmentSequences = append(alignmentSequences, [2]string{
-				reverseByteArrToString(append([]byte(nil), state.referenceStr...)),
-				reverseByteArrToString(append([]byte(nil), state.queryStr...)),
+				reverseByteArrToString(append([]byte{}, state.referenceStr...)),
+				reverseByteArrToString(append([]byte{}, state.queryStr...)),
 			})
 			continue
 		}
@@ -160,13 +200,4 @@ func reverseByteArrToString(buf []byte) string {
 	}
 
 	return string(buf)
-}
-
-func AlignmentExample() {
-	u := "CGTGAA"
-	v := "GACTTAC"
-	grid := computeAlignmentGrid(u, v, scoreMatrix{insertionAmount: -4, deletionAmount: -4, matchAmount: 5, mismatchAmount: -3})
-	fmt.Printf("The maximal cost alignment between the two sequences is %d.\n", grid.GetElement(len(u), len(v)).costToReachSquare)
-	fmt.Println("With alignment sequences:")
-	grid.traceAlignmentSequences(u, v)
 }
