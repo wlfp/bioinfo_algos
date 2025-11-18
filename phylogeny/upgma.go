@@ -9,6 +9,7 @@ import (
 type cluster struct {
 	name string
 	size int
+	node *treeNode
 }
 
 type distanceMatrix struct {
@@ -42,6 +43,11 @@ func (distanceMatrix *distanceMatrix) mergeClosestClusters(closestClusters [2]in
 	var newCluster cluster
 	newCluster.name = distanceMatrix.clusters[closestClusters[0]].name + distanceMatrix.clusters[closestClusters[1]].name
 	newCluster.size = distanceMatrix.clusters[closestClusters[0]].size + distanceMatrix.clusters[closestClusters[1]].size
+	newCluster.node = &treeNode{
+		name:  newCluster.name,
+		left:  distanceMatrix.clusters[closestClusters[0]].node,
+		right: distanceMatrix.clusters[closestClusters[1]].node,
+	}
 	distanceMatrix.deadClusterIndices = append(distanceMatrix.deadClusterIndices, closestClusters[0])
 	distanceMatrix.deadClusterIndices = append(distanceMatrix.deadClusterIndices, closestClusters[1])
 	distanceMatrix.clusters = append(distanceMatrix.clusters, newCluster)
@@ -49,7 +55,6 @@ func (distanceMatrix *distanceMatrix) mergeClosestClusters(closestClusters [2]in
 	distanceMatrix.clusterSimilarities = append(distanceMatrix.clusterSimilarities, []float64{})
 
 	distanceMatrix.updateDistanceMatrix(closestClusters)
-	fmt.Println(distanceMatrix)
 }
 
 // memberIndices contains the two clusters that just combined.
@@ -81,12 +86,18 @@ func (distanceMatrix *distanceMatrix) upgma() {
 	for len(distanceMatrix.clusters)-len(distanceMatrix.deadClusterIndices) > 1 {
 		closestClusters := distanceMatrix.findClosestClusters()
 		distanceMatrix.mergeClosestClusters(closestClusters)
+		fmt.Println(distanceMatrix)
 	}
 }
 
 func UPGMA() {
 	var distanceMatrix distanceMatrix
-	distanceMatrix.clusters = []cluster{{name: "A", size: 1}, {name: "B", size: 1}, {name: "C", size: 1}, {name: "D", size: 1}}
+	distanceMatrix.clusters = []cluster{
+		{name: "A", size: 1, node: &treeNode{name: "A"}},
+		{name: "B", size: 1, node: &treeNode{name: "B"}},
+		{name: "C", size: 1, node: &treeNode{name: "C"}},
+		{name: "D", size: 1, node: &treeNode{name: "D"}},
+	}
 	distanceMatrix.clusterSimilarities = [][]float64{{2, 4, 6}, {4, 6}, {6}}
 	distanceMatrix.upgma()
 }
