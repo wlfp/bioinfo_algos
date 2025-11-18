@@ -9,5 +9,5 @@ Here are some notes about the implementation and details of each algorithm.
 ## Needleman-Wunsch: global alignment
 
 The Needleman-Wunsch algorithm finds a maximal alignment of two strings.
-The algorithm is a slight variation on the problem of finding the longest path in a directed acylic graph (DAG), since the shape of the DAG is known to be a Manhattan-style grid.
+The algorithm is a slight variation on the problem of finding the longest path in a directed acyclic graph (DAG), since the shape of the DAG is known to be a Manhattan-style grid.
 This also lets the algorithm know that there are only three possible moves to consider, rather than having to look at all predecessors.
