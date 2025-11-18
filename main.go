@@ -19,10 +19,6 @@ ChooseAlgorithm:
 	}
 	fmt.Scanln(&algorithmChoice)
 
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-
 	switch algorithmChoice {
 	case 0:
 		alignment.Alignment()

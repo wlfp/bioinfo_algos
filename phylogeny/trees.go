@@ -8,7 +8,6 @@ import (
 
 func (distanceMatrix distanceMatrix) String() string {
 	var builder strings.Builder
-	first := true
 	for index, cluster := range distanceMatrix.clusters {
 		if slices.Contains(distanceMatrix.deadClusterIndices, index) {
 			continue
@@ -16,14 +15,8 @@ func (distanceMatrix distanceMatrix) String() string {
 		if cluster.node == nil {
 			continue
 		}
-		if !first {
-			builder.WriteByte('\n')
-		}
+		builder.WriteByte('\n')
 		builder.WriteString(cluster.node.String())
-		first = false
-	}
-	if first {
-		return "<no active clusters>"
 	}
 	return builder.String()
 }

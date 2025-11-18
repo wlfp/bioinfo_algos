@@ -43,15 +43,23 @@ func (distanceMatrix *distanceMatrix) mergeClosestClusters(closestClusters [2]in
 	var newCluster cluster
 	newCluster.name = distanceMatrix.clusters[closestClusters[0]].name + distanceMatrix.clusters[closestClusters[1]].name
 	newCluster.size = distanceMatrix.clusters[closestClusters[0]].size + distanceMatrix.clusters[closestClusters[1]].size
+
+	clusterDistance := distanceMatrix.distanceBetweenClusters(closestClusters[0], closestClusters[1])
+	newClusterHeight := clusterDistance / 2
+	leftNode := distanceMatrix.clusters[closestClusters[0]].node
+	rightNode := distanceMatrix.clusters[closestClusters[1]].node
+	leftNode.branchLength = newClusterHeight - leftNode.height
+	rightNode.branchLength = newClusterHeight - rightNode.height
 	newCluster.node = &treeNode{
-		name:  newCluster.name,
-		left:  distanceMatrix.clusters[closestClusters[0]].node,
-		right: distanceMatrix.clusters[closestClusters[1]].node,
+		name:   newCluster.name,
+		left:   leftNode,
+		right:  rightNode,
+		height: newClusterHeight,
 	}
-	distanceMatrix.deadClusterIndices = append(distanceMatrix.deadClusterIndices, closestClusters[0])
-	distanceMatrix.deadClusterIndices = append(distanceMatrix.deadClusterIndices, closestClusters[1])
 	distanceMatrix.clusters = append(distanceMatrix.clusters, newCluster)
 
+	distanceMatrix.deadClusterIndices = append(distanceMatrix.deadClusterIndices, closestClusters[0])
+	distanceMatrix.deadClusterIndices = append(distanceMatrix.deadClusterIndices, closestClusters[1])
 	distanceMatrix.clusterSimilarities = append(distanceMatrix.clusterSimilarities, []float64{})
 
 	distanceMatrix.updateDistanceMatrix(closestClusters)
@@ -79,7 +87,16 @@ func (distanceMatrix *distanceMatrix) computeNewClusterAverageDistance(clusterOn
 	} else {
 		similarityToTwo = distanceMatrix.clusterSimilarities[oldClusterIndex][clusterTwoIndex-oldClusterIndex-1]
 	}
-	return (similarityToOne + similarityToTwo) / float64(distanceMatrix.clusters[clusterOneIndex].size+distanceMatrix.clusters[clusterTwoIndex].size)
+	clusterOneSize := float64(distanceMatrix.clusters[clusterOneIndex].size)
+	clusterTwoSize := float64(distanceMatrix.clusters[clusterTwoIndex].size)
+	return (similarityToOne*clusterOneSize + similarityToTwo*clusterTwoSize) / (clusterOneSize + clusterTwoSize)
+}
+
+func (distanceMatrix *distanceMatrix) distanceBetweenClusters(clusterOneIndex, clusterTwoIndex int) float64 {
+	if clusterOneIndex > clusterTwoIndex {
+		clusterOneIndex, clusterTwoIndex = clusterTwoIndex, clusterOneIndex
+	}
+	return distanceMatrix.clusterSimilarities[clusterOneIndex][clusterTwoIndex-clusterOneIndex-1]
 }
 
 func (distanceMatrix *distanceMatrix) upgma() {
