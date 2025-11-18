@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/wlfp/bioinfo_algos/alignment"
+	"github.com/wlfp/bioinfo_algos/phylogeny"
 )
 
 func main() {
 
-	algorithmChoices := [...]string{"Global alignment"}
+	algorithmChoices := [...]string{"Global alignment", "UPGMA"}
 
 	var algorithmChoice int
 ChooseAlgorithm:
@@ -25,6 +26,8 @@ ChooseAlgorithm:
 	switch algorithmChoice {
 	case 0:
 		alignment.Alignment()
+	case 1:
+		phylogeny.UPGMA()
 	default:
 		fmt.Println("That algorithm wasn't recognised, try again?")
 		goto ChooseAlgorithm
